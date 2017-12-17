@@ -24,6 +24,10 @@
     <logger name="com.avaje.ebeaninternal.server.lib.BackgroundThread" level="OFF"/>
     <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF"/>
 
+    <!-- Keeping these at INFO makes setting root to DEBUG usable -->
+    <logger name="org.asynchttpclient.netty.channel.DefaultChannelPool" level="INFO"/>
+    <logger name="com.google.inject.internal.BytecodeGen" level="INFO"/>
+
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="FILE"/>
