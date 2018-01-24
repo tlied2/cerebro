@@ -12,5 +12,7 @@ class LDAPAuthConfig(config: Configuration) extends AuthConfig {
   final val method = getSetting("method")
   final val url = getSetting("url")
   final val baseDN = getSetting("base-dn")
+  final val groupDN = getSetting("group-dn")
+  final val groupfilter = getSetting("group-filter")
 
 }

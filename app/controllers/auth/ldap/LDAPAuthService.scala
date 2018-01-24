@@ -19,7 +19,7 @@ class LDAPAuthService @Inject()(globalConfig: Configuration) extends AuthService
   def auth(username: String, password: String): Option[String] = {
     val env = new Hashtable[String, String](11)
     env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
-    env.put(Context.PROVIDER_URL, s"${config.url}/${config.baseDN}")
+    env.put(Context.PROVIDER_URL, s"${config.url}")
     env.put(Context.SECURITY_AUTHENTICATION, config.method)
 
     if (username.contains("@")) {
@@ -34,8 +34,34 @@ class LDAPAuthService @Inject()(globalConfig: Configuration) extends AuthService
 
     try {
       val ctx = new InitialDirContext(env)
-      ctx.close()
+      log.debug(s"User ${env.get(Context.SECURITY_PRINCIPAL)} authenticated")
+
+      if (!config.groupDN.isEmpty && !config.groupfilter.isEmpty()) {
+        val controls: SearchControls = new SearchControls
+        controls.setReturningAttributes(Array[String]("cn"))
+        controls.setSearchScope(SearchControls.SUBTREE_SCOPE)
+
+        log.debug(s"Searching group base: ${config.groupDN}")
+        log.debug(s"Using group filter: ${config.groupfilter.format(username, config.baseDN)}")
+
+        val answers: NamingEnumeration[SearchResult] = ctx.search(config.groupDN, config.groupfilter.format(username, config.baseDN), controls)
+        ctx.close()
+
+        if(answers.hasMore()){
+          val result: SearchResult = answers.nextElement
+          log.debug(s"Found LDAP result: $result")
+        } else {
+          throw new AuthenticationException("Empty group search results, access denied")
+        }
+
+        if(answers.hasMore())
+          throw new AuthenticationException("Too many group search results, expected exactly 1. Adjust your group-filter setting.")
+
+        log.debug(s"User ${env.get(Context.SECURITY_PRINCIPAL)} authorized")
+      }
+
       Some(username)
+
     } catch {
       case ex: AuthenticationException =>
         log.info(s"login of $username failed with: ${ex.getMessage}")
